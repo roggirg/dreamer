@@ -4,6 +4,7 @@ import sys
 import threading
 import traceback
 
+import cv2
 import gym
 import numpy as np
 from PIL import Image
@@ -30,10 +31,8 @@ class DeepMindControl:
     def observation_space(self):
         spaces = {}
         for key, value in self._env.observation_spec().items():
-            spaces[key] = gym.spaces.Box(
-                -np.inf, np.inf, value.shape, dtype=np.float32)
-        spaces['image'] = gym.spaces.Box(
-            0, 255, self._size + (3,), dtype=np.uint8)
+            spaces[key] = gym.spaces.Box(-np.inf, np.inf, value.shape, dtype=np.float32)
+        spaces['image'] = gym.spaces.Box(0, 255, self._size + (3,), dtype=np.uint8)
         return gym.spaces.Dict(spaces)
 
     @property
@@ -60,6 +59,52 @@ class DeepMindControl:
         if kwargs.get('mode', 'rgb_array') != 'rgb_array':
             raise ValueError("Only render mode 'rgb_array' is supported.")
         return self._env.physics.render(*self._size, camera_id=self._camera)
+
+
+class LunarLanderContinuous:
+    def __init__(self, size=(64, 64), action_repeat=2):
+        from custom_lunar_lander import LunarLanderContinuous
+        self._env = LunarLanderContinuous()
+        self._action_repeat = action_repeat
+        self._size = size
+        self._random = np.random.RandomState(seed=None)
+
+    @property
+    def observation_space(self):
+        shape = self._size + (3,)
+        space = gym.spaces.Box(low=0, high=255, shape=shape, dtype=np.uint8)
+        return gym.spaces.Dict({'image': space})
+
+    @property
+    def action_space(self):
+        return self._env.action_space
+
+    def close(self):
+        return self._env.close()
+
+    def reset(self):
+        _ = self._env.reset()
+        obs = self._get_obs()
+        return obs
+
+    def step(self, action):
+        total_reward = 0.0
+        for step in range(self._action_repeat):
+            _, reward, done, info = self._env.step(action)
+            total_reward += reward
+            if done:
+                break
+        obs = self._get_obs()
+        return obs, total_reward, done, info
+
+    def _get_obs(self):
+        image = self.render(mode='rgb_array')
+        image = cv2.resize(image, (64, 64), interpolation=cv2.INTER_LINEAR)
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return {'image': image}
+
+    def render(self, mode='rgb_array'):
+        return self._env.render(mode)
 
 
 class Atari:

@@ -108,6 +108,7 @@ def simulate(agent, envs, steps=0, episodes=0, state=None):
         agent_state = None
     else:
         step, episode, done, length, obs, agent_state = state
+
     while (steps and step < steps) or (episodes and episode < episodes):
         # Reset envs if necessary.
         if done.any():
@@ -115,11 +116,13 @@ def simulate(agent, envs, steps=0, episodes=0, state=None):
             promises = [envs[i].reset(blocking=False) for i in indices]
             for index, promise in zip(indices, promises):
                 obs[index] = promise()
+
         # Step agents.
         obs = {k: np.stack([o[k] for o in obs]) for k in obs[0]}
         action, agent_state = agent(obs, done, agent_state)
         action = np.array(action)
         assert len(action) == len(envs)
+
         # Step envs.
         promises = [e.step(a, blocking=False) for e, a in zip(envs, action)]
         obs, _, done = zip(*[p()[:3] for p in promises])
@@ -129,6 +132,7 @@ def simulate(agent, envs, steps=0, episodes=0, state=None):
         length += 1
         step += (done * length).sum()
         length *= (1 - done)
+
     # Return new state to allow resuming the simulation.
     return (step - steps, episode - episodes, done, length, obs, agent_state)
 

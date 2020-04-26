@@ -103,8 +103,7 @@ class Dreamer(tools.Module):
         self._float = prec.global_policy().compute_dtype
         self._strategy = tf.distribute.MirroredStrategy()
         with self._strategy.scope():
-            self._dataset = iter(self._strategy.experimental_distribute_dataset(
-                load_dataset(datadir, self._c)))
+            self._dataset = iter(self._strategy.experimental_distribute_dataset(load_dataset(datadir, self._c)))
             self._build_model()
 
     def __call__(self, obs, reset, state=None, training=True):
@@ -307,8 +306,7 @@ class Dreamer(tools.Module):
         model = tf.concat([recon[:, :5] + 0.5, openl + 0.5], 1)
         error = (model - truth + 1) / 2
         openl = tf.concat([truth, model, error], 2)
-        tools.graph_summary(
-            self._writer, tools.video_summary, 'agent/openl', openl)
+        tools.graph_summary(self._writer, tools.video_summary, 'agent/openl', openl)
 
     def _write_summaries(self):
         step = int(self._step.numpy())
@@ -374,18 +372,21 @@ def summarize_episode(episode, config, datadir, writer, prefix):
 
 
 def make_env(config, writer, prefix, datadir, store):
-    suite, task = config.task.split('_', 1)
-    if suite == 'dmc':
-        env = wrappers.DeepMindControl(task)
-        env = wrappers.ActionRepeat(env, config.action_repeat)
-        env = wrappers.NormalizeActions(env)
-    elif suite == 'atari':
-        env = wrappers.Atari(
-            task, config.action_repeat, (64, 64), grayscale=False,
-            life_done=True, sticky_actions=True)
-        env = wrappers.OneHotAction(env)
+    if "lunar" in config.task:
+        env = wrappers.LunarLanderContinuous(size=(64, 64), action_repeat=config.action_repeat)
     else:
-        raise NotImplementedError(suite)
+        suite, task = config.task.split('_', 1)
+        if suite == 'dmc':
+            env = wrappers.DeepMindControl(task)
+            env = wrappers.ActionRepeat(env, config.action_repeat)
+            env = wrappers.NormalizeActions(env)
+        elif suite == 'atari':
+            env = wrappers.Atari(
+                task, config.action_repeat, (64, 64), grayscale=False,
+                life_done=True, sticky_actions=True)
+            env = wrappers.OneHotAction(env)
+        else:
+            raise NotImplementedError(suite)
     env = wrappers.TimeLimit(env, config.time_limit / config.action_repeat)
     callbacks = []
     if store:
@@ -436,17 +437,20 @@ def main(config):
     if (config.logdir / 'variables.pkl').exists():
         print('Load checkpoint.')
         agent.load(config.logdir / 'variables.pkl')
+
     state = None
     while step < config.steps:
+
         print('Start evaluation.')
-        tools.simulate(
-            functools.partial(agent, training=False), test_envs, episodes=1)
+        tools.simulate(functools.partial(agent, training=False), test_envs, episodes=1)
         writer.flush()
+
         print('Start collection.')
         steps = config.eval_every // config.action_repeat
         state = tools.simulate(agent, train_envs, steps, state=state)
         step = count_steps(datadir, config)
         agent.save(config.logdir / 'variables.pkl')
+
     for env in train_envs + test_envs:
         env.close()
 
