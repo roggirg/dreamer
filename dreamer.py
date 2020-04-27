@@ -391,8 +391,7 @@ def make_env(config, writer, prefix, datadir, store):
     callbacks = []
     if store:
         callbacks.append(lambda ep: tools.save_episodes(datadir, [ep]))
-    callbacks.append(
-        lambda ep: summarize_episode(ep, config, datadir, writer, prefix))
+    callbacks.append(lambda ep: summarize_episode(ep, config, datadir, writer, prefix))
     env = wrappers.Collect(env, callbacks, config.precision)
     env = wrappers.RewardObs(env)
     return env
@@ -411,8 +410,7 @@ def main(config):
 
     # Create environments.
     datadir = config.logdir / 'episodes'
-    writer = tf.summary.create_file_writer(
-        str(config.logdir), max_queue=1000, flush_millis=20000)
+    writer = tf.summary.create_file_writer(str(config.logdir), max_queue=1000, flush_millis=20000)
     writer.set_as_default()
     train_envs = [wrappers.Async(lambda: make_env(
         config, writer, 'train', datadir, store=True), config.parallel)

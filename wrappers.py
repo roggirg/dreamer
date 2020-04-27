@@ -60,6 +60,10 @@ class DeepMindControl:
             raise ValueError("Only render mode 'rgb_array' is supported.")
         return self._env.physics.render(*self._size, camera_id=self._camera)
 
+    def rendershow(self):
+        cv2.imshow('screen', self._env.physics.render(camera_id=self._camera))
+        cv2.waitKey(1)
+
 
 class LunarLanderContinuous:
     def __init__(self, size=(64, 64), action_repeat=2):
