@@ -329,8 +329,9 @@ def preprocess(obs, config):
     obs = obs.copy()
     with tf.device('cpu:0'):
         obs['image'] = tf.cast(obs['image'], dtype) / 255.0 - 0.5
-        clip_rewards = dict(none=lambda x: x, tanh=tf.tanh)[config.clip_rewards]
-        obs['reward'] = clip_rewards(obs['reward'])
+        if "lunar" not in config.task:
+            clip_rewards = dict(none=lambda x: x, tanh=tf.tanh)[config.clip_rewards]
+            obs['reward'] = clip_rewards(obs['reward'])
     return obs
 
 
