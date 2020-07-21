@@ -374,7 +374,10 @@ def summarize_episode(episode, config, datadir, writer, prefix):
 
 def make_env(config, writer, prefix, datadir, store):
     if "lunar" in config.task:
-        env = wrappers.LunarLanderContinuous(size=(64, 64), action_repeat=config.action_repeat)
+        env = wrappers.LunarLander(size=(64, 64), action_repeat=config.action_repeat)
+    elif "Car" in config.task:
+        env = wrappers.CarEnvWrapper(env_name=config.task, size=(64, 64), action_repeat=config.action_repeat,
+                                     seed=config.seed)
     else:
         suite, task = config.task.split('_', 1)
         if suite == 'dmc':

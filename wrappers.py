@@ -65,7 +65,7 @@ class DeepMindControl:
         cv2.waitKey(1)
 
 
-class LunarLanderContinuous:
+class LunarLander:
     def __init__(self, size=(64, 64), action_repeat=2):
         from custom_lunar_lander import LunarLanderContinuous
         self._env = LunarLanderContinuous()
@@ -108,6 +108,58 @@ class LunarLanderContinuous:
         return {'image': image}
 
     def render(self, mode='rgb_array'):
+        return self._env.render(mode)
+
+    def rendershow(self, mode='rgb_array'):
+        return self._env.render(mode)
+
+
+class CarEnvWrapper:
+    def __init__(self, env_name, size=(64, 64), action_repeat=2, seed=None):
+        self._env = gym.make(env_name)
+        self._env.seed(seed)
+        self._action_repeat = action_repeat
+        self._size = size
+        self._random = np.random.RandomState(seed=None)
+
+    @property
+    def observation_space(self):
+        shape = self._size + (3,)
+        space = gym.spaces.Box(low=0, high=255, shape=shape, dtype=np.uint8)
+        return gym.spaces.Dict({'image': space})
+
+    @property
+    def action_space(self):
+        return self._env.action_space
+
+    def close(self):
+        return self._env.close()
+
+    def reset(self):
+        _ = self._env.reset()
+        obs = self._get_obs()
+        return obs
+
+    def step(self, action):
+        total_reward = 0.0
+        for step in range(self._action_repeat):
+            _, reward, done, info = self._env.step(action)
+            total_reward += reward
+            if done:
+                break
+        obs = self._get_obs()
+        return obs, total_reward, done, info
+
+    def _get_obs(self):
+        image = self.render(mode='rgb_array')
+        image = cv2.resize(image, (64, 64), interpolation=cv2.INTER_LINEAR)
+        image = np.clip(image, 0, 255).astype(np.uint8)
+        return {'image': image}
+
+    def render(self, mode='rgb_array'):
+        return self._env.render(mode)
+
+    def rendershow(self, mode='rgb_array'):
         return self._env.render(mode)
 
 
