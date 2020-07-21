@@ -9,6 +9,11 @@ import gym
 import numpy as np
 from PIL import Image
 
+try:
+    import car_environment
+except ImportError:
+    pass
+
 
 class DeepMindControl:
 
